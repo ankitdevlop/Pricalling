@@ -1,5 +1,5 @@
 This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
-
+This is My First Projext using React native and This is app is Going to be More interesting and more features Full than othere and While making this react native app i am also learnig react native and its thigs
 # Getting Started
 
 >**Note**: Make sure you have completed the [React Native - Environment Setup](https://reactnative.dev/docs/environment-setup) instructions till "Creating a new application" step, before proceeding.
