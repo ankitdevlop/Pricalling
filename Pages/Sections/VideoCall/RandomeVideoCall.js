@@ -106,10 +106,11 @@ const styles = StyleSheet.create({
     marginVertical: 12,
     alignItems: 'center',
     height: 302,
+    borderRadius:56
   },
   userScreen2: {
     width: '50%',
-    // backgroundColor: '#fff',
+    borderRadius:56,
 marginTop:116,
     alignItems: 'center',
     height: 102,
@@ -119,7 +120,7 @@ marginTop:116,
     width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius:15
+    borderRadius:56
   },
   button: {
     position: 'absolute',
@@ -140,7 +141,6 @@ marginTop:116,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius:45
   },
   modalContainer: {
     width: 350,
@@ -148,6 +148,7 @@ marginTop:116,
     backgroundColor: 'white',
     borderRadius: 10,
     alignItems: 'center',
+    
   },
   modalText: {
     fontSize: 18,

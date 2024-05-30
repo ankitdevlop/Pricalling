@@ -1,258 +1,227 @@
 /* eslint-disable prettier/prettier */
-import React, { useEffect, useState } from 'react';
-import { Modal,View, StyleSheet, ImageBackground, Dimensions, Image, Text, Alert,PermissionsAndroid } from 'react-native';
-import { ScrollView, TextInput, TouchableOpacity } from 'react-native-gesture-handler';
+import React, { useEffect, useState, useRef } from 'react';
+import {
+  Modal,
+  View,
+  StyleSheet,
+  Dimensions,
+  Text,
+  TextInput,
+  FlatList,
+  Alert,
+  TouchableOpacity,
+} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { ThemedButton } from 'react-native-really-awesome-button';
+import io from 'socket.io-client';
+
+const socket = io('https://websocketbackedn.onrender.com');
 
 const { height, width } = Dimensions.get('window');
 
-function RandomeChat({navigation}) {
+function RandomChat({ navigation }) {
   const [modalVisible, setModalVisible] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [message, setMessage] = useState('');
+  const [chatDisabled, setChatDisabled] = useState(false);
+  const [userStatus, setUserStatus] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const flatListRef = useRef(null);
 
   const toggleModal = () => {
     setModalVisible(!modalVisible);
   };
-  const Leavechat=()=>{
-  toggleModal()
-  navigation.navigate('Chat')
-  }
+
+  const leaveChat = () => {
+    toggleModal();
+    Alert.alert("User left the room");
+    setChatDisabled(true);
+    socket.disconnect();
+    navigation.navigate('Chat');
+  };
+
+  useEffect(() => {
+    socket.on('chat message', msg => {
+      if (typeof msg === 'string' && msg === 'The user has left the chat.') {
+        setChatDisabled(true);
+      } else {
+        setMessages(prevMessages => [
+          ...prevMessages,
+          { key: Math.random().toString(), text: msg.text, sender: msg.id === socket.id, seen: msg.seen },
+        ]);
+      }
+    });
+
+    socket.on('user connected', msg => {
+      setUserStatus(msg);
+    });
+
+    socket.on('user disconnected', msg => {
+      setUserStatus(msg);
+      setChatDisabled(true);
+    });
+
+    socket.on('typing', isTyping => {
+      setIsTyping(isTyping);
+    });
+
+    socket.on('message seen', () => {
+      setMessages(prevMessages => prevMessages.map(msg => ({ ...msg, seen: true })));
+    });
+
+    return () => {
+      socket.off('chat message');
+      socket.off('user connected');
+      socket.off('user disconnected');
+      socket.off('typing');
+      socket.off('message seen');
+    };
+  }, []);
+
+  const sendMessage = () => {
+    if (message.trim() && !chatDisabled) {
+      socket.emit('chat message', message);
+      setMessage('');
+    } else if (chatDisabled) {
+      Alert.alert("You cannot send messages as the other user has left the chat.");
+    }
+  };
+
+  const handleTyping = (text) => {
+    setMessage(text);
+    socket.emit('typing', text.length > 0);
+  };
+
+  const renderMessage = ({ item }) => (
+    <View style={item.sender ? styles.senderContainer : styles.receiverContainer}>
+      <Text style={{ color: item.color || 'black' }}>{item.text}</Text>
+      {item.sender && item.seen && <Text style={styles.seenText}>Seen</Text>}
+    </View>
+  );
+
+  const handleScroll = (event) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const isBottom = contentOffset.y >= contentSize.height - layoutMeasurement.height - 20;
+    setShowScrollToBottom(!isBottom);
+    if (isBottom) {
+      socket.emit('message seen');
+    }
+  };
+
+  const scrollToBottom = () => {
+    flatListRef.current.scrollToEnd({ animated: true });
+  };
 
   return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-      <LinearGradient colors={['#69c2d9', '#a637d5', '#00ffcd']} style={styles.gradient}>
-        <View style={styles.stick}>
-
-          <ThemedButton name="rick" type="secondary"  onPress={toggleModal}>Leave Chat</ThemedButton>
+    <View style={{ flex: 1 }}>
+      <LinearGradient
+        colors={['#69c2d9', '#a637d5', '#00ffcd']}
+        style={styles.gradient}>
+        <View style={styles.header}>
+          <ThemedButton name="rick" type="secondary" onPress={toggleModal}>
+            Leave Chat 
+          </ThemedButton> 
+          <Text style={styles.userStatus}>{userStatus}</Text>
         </View>
-        <Text>User
-          <Image
-            source={require('../../../Assets/Imges/newpep.png')}
-            style={styles.image}
+
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={item => item.key}
+          style={styles.chatContainer}
+          onScroll={handleScroll}
+        />
+
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            value={message}
+            onChangeText={handleTyping}
+            placeholder="Type your message here..."
+            editable={!chatDisabled}
           />
-        </Text>
-        
-        <ScrollView contentContainerStyle={styles.scrollView}>
-          <View style={styles.sender}>
-
-            <Text style={styles.text}>Hello</Text>
-            <Image
-              source={require('../../../Assets/Imges/deleverd.png')}
-              style={styles.viewIcons}
-            />
-          </View>
-
-          <View style={styles.receiver}>
-            <Text style={styles.text}> Lorem ipsum dolor sit amet consectetur adipisicing elit. Sunt, officia.</Text>
-            <Image
-              source={require('../../../Assets/Imges/seen.png')}
-              style={styles.viewIcons}
-            />
-          </View>
-          <View style={styles.sender}>
-
-            <Text style={styles.text}>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Officiis perspiciatis vel dolorem, quibusdam modi sed sit, odit minus corrupti hic laudantium tempore nihil ducimus consequatur, quia amet doloremque quidem cum adipisci consectetur tempora.</Text>
-            <Image
-              source={require('../../../Assets/Imges/deleverd.png')}
-              style={styles.viewIcons}
-            />
-          </View>
-
-          <View style={styles.receiver}>
-            <Text style={styles.text}>  Lorem ipsum dolor sit amet consectetur adipisicing elit. Hic.</Text>
-            <Image
-              source={require('../../../Assets/Imges/seen.png')}
-              style={styles.viewIcons}
-            />
-          </View>
-          <View style={styles.sender}>
-
-            <Text style={styles.text}>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Mollitia totam ratione sequi veniam beatae incidunt molestiae assumenda fugit iusto asperiores eveniet, eum voluptatibus quia expedita delectus id suscipit officiis architecto accusamus optio? Earum?</Text>
-            <Image
-              source={require('../../../Assets/Imges/deleverd.png')}
-              style={styles.viewIcons}
-            />
-          </View>
-
-          <View style={styles.receiver}>
-            <Text style={styles.text}>  Kya chal rha hai babu </Text>
-            <Image
-              source={require('../../../Assets/Imges/seen.png')}
-              style={styles.viewIcons}
-            />
-          </View>
-          <View style={styles.sender}>
-
-            <Text style={styles.text}>Kucb nahi chal rha hai tu apna kaam kar </Text>
-            <Image
-              source={require('../../../Assets/Imges/deleverd.png')}
-              style={styles.viewIcons}
-            />
-          </View>
-
-          <View style={styles.receiver}>
-            <Text style={styles.text}>  
-            Acha Kya chal rha hia </Text>
-            <Image
-              source={require('../../../Assets/Imges/seen.png')}
-              style={styles.viewIcons}
-            />
-          </View>
-          <View style={styles.sender}>
-
-            <Text style={styles.text}>nahi</Text>
-            <Image
-              source={require('../../../Assets/Imges/deleverd.png')}
-              style={styles.viewIcons}
-            />
-          </View>
-
-          <View style={styles.receiver}>
-            <Text style={styles.text}>  Kuch karna hai ki nahi </Text>
-            <Image
-              source={require('../../../Assets/Imges/seen.png')}
-              style={styles.viewIcons}
-            />
-          </View>
-          <View style={styles.sender}>
-
-            <Text style={styles.text}>Hello babu kya ho rha hai </Text>
-            <Image
-              source={require('../../../Assets/Imges/deleverd.png')}
-              style={styles.viewIcons}
-            />
-          </View>
-
-          <View style={styles.receiver}>
-            <Text style={styles.text}>  Kuch nahi babu</Text>
-            <Image
-              source={require('../../../Assets/Imges/seen.png')}
-              style={styles.viewIcons}
-            />
-          </View>
-        </ScrollView>
-
-        <View style={styles.container}>
-          <TouchableOpacity>
-            <Text>Typing....</Text>
-            <Image
-              source={require('../../../Assets/Imges/attach.png')}
-              style={styles.icons}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity>
-
-            <Image
-              source={require('../../../Assets/Imges/send.png')}
-              style={styles.icon2}
-            />
-          </TouchableOpacity>
-          <TextInput placeholder='Type here...... 😅😅' style={styles.input} />
-          <View>
-          </View >
+          <ThemedButton name="rick" type="primary" onPress={sendMessage}>
+            Send
+          </ThemedButton>
         </View>
+
+        {isTyping && <Text style={styles.typingStatus}>User is typing...</Text>}
+
+        {showScrollToBottom && (
+          <TouchableOpacity style={styles.scrollToBottomButton} onPress={scrollToBottom}>
+            <Text style={styles.scrollToBottomText}>↓</Text>
+          </TouchableOpacity>
+        )}
+
         <Modal
-        animationType="fade"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={toggleModal}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalText}>Do you really want to leave</Text>
-
-            <View style={{padding:7}}>
-            <ThemedButton name="rick" type="danger"  onPress={Leavechat}>Yes!</ThemedButton>
-            </View>
-            <View style={{padding:7}}>
-            <ThemedButton name="rick" type="danger"  onPress={toggleModal}>No !</ThemedButton>
+          animationType="fade"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={toggleModal}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalText}>Do you really want to leave?</Text>
+              <View style={styles.modalButton}>
+                <ThemedButton
+                  name="rick"
+                  type="danger"
+                  onPress={leaveChat}>
+                  Yes!
+                </ThemedButton>
+              </View>
+              <View style={styles.modalButton}>
+                <ThemedButton
+                  name="rick"
+                  type="secondary"
+                  onPress={toggleModal}>
+                  No!
+                </ThemedButton>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
       </LinearGradient>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  backgroundImage: {
-    // flex: 1,
-    width: width,
-    height: height,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  container: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    alignItems: 'flex-end',
-    padding: 14,
-    margin: 2,
-  },
   gradient: {
     flex: 1,
-    width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  image: {
-    borderRadius: 100,
-    width: 50, height: 60,
-    margin: 45
-
+  header: {
+    marginTop: 50,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '90%',
   },
-  input: {
-    backgroundColor: "white",
-    borderRadius: 12,
-    width: 270,
-    marginRight: 49
+  userStatus: {
+    fontSize: 16,
+    color: 'white',
   },
-  icons: {
-    width: 50,
-    height: 50,
-    marginRight: 328,
-    marginBottom: -49
+  chatContainer: {
+    flex: 1,
+    width: '90%',
+    marginTop: 20,
   },
-  icon2: {
-    width: 50,
-    height: 50,
-    marginLeft: 307,
-    marginBottom: -49
-  },
-  scrollView: {
-    width: 400,
-    flexGrow: 1,
-    padding: 10,
-  },
-  messageContainer: {
+  inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 5,
+    width: '90%',
+    marginBottom: 20,
   },
-  sender: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#d1e7dd',
-    padding: 10,
-    borderRadius: 10,
-    maxWidth: '50%',
-    marginVertical: 5,
-  },
-  receiver: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#f8d7da',
-    padding: 10,
-    borderRadius: 10,
-    maxWidth: '50%',
-    marginVertical: 5,
-  },
-  text: {
-    color: '#000',
-  },
-  viewIcons: {
-    width: 30,
-    height: 30,
-    marginLeft: 0,
+  input: {
+    flex: 1,
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    marginRight: 10,
+    paddingLeft: 8,
   },
   modalOverlay: {
     flex: 1,
@@ -261,7 +230,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalContainer: {
-    width: 350,
+    width: 300,
     padding: 20,
     backgroundColor: 'white',
     borderRadius: 10,
@@ -271,6 +240,48 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginBottom: 20,
   },
+  modalButton: {
+    marginVertical: 10,
+  },
+  senderContainer: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#d1e7dd',
+    padding: 10,
+    borderRadius: 10,
+    maxWidth: '70%',
+    marginVertical: 5,
+  },
+  receiverContainer: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#f8d7da',
+    padding: 10,
+    borderRadius: 10,
+    maxWidth: '70%',
+    marginVertical: 5,
+  },
+  seenText: {
+    fontSize: 10,
+    color: 'gray',
+  },
+  typingStatus: {
+    position: 'absolute',
+    bottom: 70,
+    left: '5%',
+    fontSize: 16,
+    color: 'gray',
+  },
+  scrollToBottomButton: {
+    position: 'absolute',
+    bottom: 80,
+    right: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
+    padding: 10,
+  },
+  scrollToBottomText: {
+    color: 'white',
+    fontSize: 20,
+  },
 });
 
-export default RandomeChat;
+export default RandomChat;
