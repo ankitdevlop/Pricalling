@@ -14,8 +14,9 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { ThemedButton } from 'react-native-really-awesome-button';
 import io from 'socket.io-client';
+import { WebsocketUrl } from '../../../utils/impUrls';
 
-const socket = io('https://websocketbackedn.onrender.com');
+const socket = io(`${WebsocketUrl}`);
 
 const { height, width } = Dimensions.get('window');
 

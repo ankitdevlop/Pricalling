@@ -79,7 +79,7 @@ function UserAuth() {
         />
         {!login && (
           <View>
-            <Text style={{ color: 'white' }}>Confirm Password</Text>
+            <Text style={{ color: 'white' }}>Type User Name</Text>
             <Controller
               control={control}
               render={({ field: { onChange, onBlur, value } }) => (
@@ -97,7 +97,7 @@ function UserAuth() {
                   )}
                 </View>
               )}
-              name="confirmPassword"
+              name="userName"
               rules={{
                 required: true,
                 validate: value =>

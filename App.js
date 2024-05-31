@@ -14,6 +14,8 @@ import RandomeChats from './Pages/Sections/Chats/RandomeChat';
 import VideoCallScreen from './Pages/Sections/VideoCall/VidoCallPage';
 import HistoryScreen from './Pages/Sections/History/ChatHistory';
 import RandomeVideoChat from './Pages/Sections/VideoCall/RandomeVideoCall';
+import {Provider} from 'react-redux';
+import store from './store/store';
 // Create Stack Navigator
 const Stack = createStackNavigator();
 // Create Bottom Tab Navigator
@@ -194,7 +196,9 @@ function MainStackNavigator() {
 function App() {
   return (
     <NavigationContainer>
-      <MainStackNavigator />
+      <Provider store={store}>
+        <MainStackNavigator />
+      </Provider>
     </NavigationContainer>
   );
 }
