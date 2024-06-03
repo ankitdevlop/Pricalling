@@ -19,7 +19,7 @@ export const signup = createAsyncThunk(
   },
 );
 
-export const login = createAsyncThunk(
+export const Userlogin = createAsyncThunk(
   'auth/login',
   async (userData, {rejectWithValue}) => {
     try {
@@ -67,16 +67,16 @@ const authSlice = createSlice({
         state.error = action.payload;
       })
       // Handle login
-      .addCase(login.pending, state => {
+      .addCase(Userlogin.pending, state => {
         state.status = 'loading';
       })
-      .addCase(login.fulfilled, (state, action) => {
+      .addCase(Userlogin.fulfilled, (state, action) => {
         state.status = 'succeeded';
         state.user = action.payload.user;
         state.token = action.payload.token;
         state.error = null;
       })
-      .addCase(login.rejected, (state, action) => {
+      .addCase(Userlogin.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload;
       });

@@ -1,11 +1,19 @@
 /* eslint-disable prettier/prettier */
-import React from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect } from 'react';
 import { Button, Image, ImageBackground, StatusBar, TextInput, TouchableHighlight } from 'react-native';
 import { StyleSheet, View, Text, ScrollView } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { ThemedButton } from 'react-native-really-awesome-button';
 // import {Icon}  from 'react-native-vector-icons/Icon';
 function FirstPage({ navigation }) {
+  const getData = async () => {
+      const value = await AsyncStorage.getItem('token');
+        console.log('tokens',value )
+  }
+  useEffect(()=>{
+getData()
+  },[])
   return (
     <LinearGradient colors={['#69c2d9', '#8400a1', '#731b30']} style={styles.gradient}>
       <StatusBar backgroundColor={'#69c2d9'} />

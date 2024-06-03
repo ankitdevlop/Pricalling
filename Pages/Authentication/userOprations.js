@@ -8,30 +8,54 @@ import {
   StyleSheet,
   TouchableOpacity,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import { ThemedButton } from 'react-native-really-awesome-button';
+import { useDispatch } from 'react-redux';
+import { Userlogin, signup } from './userSlice';
+import Toast from 'react-native-simple-toast';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 function UserAuth() {
-  const [login, isLogin] = useState(true);
+  const [login, setLogin] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
   const {
     handleSubmit,
     control,
     formState: { errors },
-    getValues,
   } = useForm();
-
   const navigation = useNavigation();
 
-  const onSubmit = data => {
-    console.log('data', data);
-    navigation.navigate('Tabs'); // Navigate to the tab navigator
+  const onSubmit = async (data) => {
+    setLoading(true);
+    try {
+      let res;
+      if (login) {
+        res = await dispatch(Userlogin(data)).unwrap();
+      } else {
+        res = await dispatch(signup(data)).unwrap();
+      }
+      await AsyncStorage.setItem('token', res.token);
+      Toast.show("User Logged In Successfully");
+      navigation.navigate('Tabs');
+    } catch (err) {
+      Toast.show(err?.error || "An error occurred");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <LinearGradient colors={['#69c2d9', '#8400a1', '#731b30']} style={styles.gradient}>
       <StatusBar backgroundColor={"#69c2d9"} />
+      {loading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator color={'#fff'} size="large" />
+        </View>
+      )}
       <View style={{ height: 900, alignItems: 'center' }}>
         <Text style={styles.heading}>
           {login ? 'User Login' : 'User Registration'}
@@ -85,36 +109,32 @@ function UserAuth() {
               render={({ field: { onChange, onBlur, value } }) => (
                 <View>
                   <TextInput
-                    placeholder="Re-type password"
+                    placeholder="Type user name here"
                     value={value}
                     style={styles.formStyle}
                     onBlur={onBlur}
                     onChangeText={value => onChange(value)}
-                    secureTextEntry={true}
                   />
-                  {errors.confirmPassword && (
-                    <Text style={{ color: 'red' }}>Passwords do not match</Text>
+                  {errors.userName && (
+                    <Text style={{ color: 'red' }}>Username is required</Text>
                   )}
                 </View>
               )}
               name="userName"
-              rules={{
-                required: true,
-                validate: value =>
-                  value === getValues('password') || 'Passwords do not match',
-              }}
+              rules={{ required: true }}
             />
           </View>
         )}
         <Text style={{ color: 'red' }}>
           {login ? 'New user?' : 'Already a user?'}{' '}
-          <Text style={{ color: 'white' }} onPress={() => isLogin(!login)}>
+          <Text style={{ color: 'white' }} onPress={() => setLogin(!login)}>
             {login ? 'Register Now' : 'Login'}
           </Text>
         </Text>
-        <View style={{marginTop:23}}>
-
-        <ThemedButton name="cartman" type="danger" onPress={handleSubmit(onSubmit)}>{login ? 'Login' : 'Register'}</ThemedButton>
+        <View style={{ marginTop: 23 }}>
+          <ThemedButton name="cartman" type="danger" onPress={handleSubmit(onSubmit)}>
+            {login ? 'Login' : 'Register'}
+          </ThemedButton>
         </View>
       </View>
     </LinearGradient>
@@ -135,7 +155,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#00ffcd',
     textAlign: 'center',
     width: 100,
-    fontWeight: 900,
+    fontWeight: '900',
     height: 40,
     margin: 12,
     display: 'flex',
@@ -170,6 +190,13 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
+  },
+  loadingContainer: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
   },
 });
 
